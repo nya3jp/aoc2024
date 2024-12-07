@@ -1,25 +1,37 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, str::FromStr};
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Error, Result};
 use itertools::Itertools;
 
-fn parse_input(input: &str) -> Result<(Vec<isize>, Vec<isize>)> {
-    let both: Vec<(isize, isize)> = input
-        .lines()
-        .map(|line| -> Result<_> {
-            let mut parts = line.split_whitespace();
-            let left = parts.next().context("No left value")?;
-            let right = parts.next().context("No right value")?;
-            let left = left.parse::<isize>()?;
-            let right = right.parse::<isize>()?;
-            Ok((left, right))
-        })
-        .collect::<Result<_>>()?;
-    Ok(both.into_iter().unzip())
+#[derive(Clone, Debug)]
+struct Problem {
+    lefts: Vec<isize>,
+    rights: Vec<isize>,
 }
 
-fn solve(lefts: &[isize], rights: &[isize]) -> Result<isize> {
-    let right_counts: HashMap<_, _> = rights
+impl FromStr for Problem {
+    type Err = Error;
+
+    fn from_str(input: &str) -> Result<Self> {
+        let both: Vec<(isize, isize)> = input
+            .lines()
+            .map(|line| -> Result<_> {
+                let mut parts = line.split_whitespace();
+                let left = parts.next().context("No left value")?;
+                let right = parts.next().context("No right value")?;
+                let left = left.parse::<isize>()?;
+                let right = right.parse::<isize>()?;
+                Ok((left, right))
+            })
+            .collect::<Result<_>>()?;
+        let (lefts, rights) = both.into_iter().unzip();
+        Ok(Problem { lefts, rights })
+    }
+}
+
+fn solve(problem: &Problem) -> Result<isize> {
+    let right_counts: HashMap<_, _> = problem
+        .rights
         .iter()
         .copied()
         .sorted()
@@ -27,7 +39,8 @@ fn solve(lefts: &[isize], rights: &[isize]) -> Result<isize> {
         .into_iter()
         .map(|(r, rs)| (r, rs.count() as isize))
         .collect();
-    let answer = lefts
+    let answer = problem
+        .lefts
         .iter()
         .copied()
         .map(|l| l * right_counts.get(&l).unwrap_or(&0))
@@ -37,8 +50,8 @@ fn solve(lefts: &[isize], rights: &[isize]) -> Result<isize> {
 
 fn main() -> Result<()> {
     let input = std::io::read_to_string(std::io::stdin().lock())?;
-    let (lefts, rights) = parse_input(&input)?;
-    let answer = solve(&lefts, &rights)?;
+    let problem: Problem = input.parse()?;
+    let answer = solve(&problem)?;
     println!("{}", answer);
     Ok(())
 }
@@ -56,8 +69,8 @@ mod tests {
 3   9
 3   3
 "#;
-        let (lefts, rights) = parse_input(input)?;
-        let answer = solve(&lefts, &rights)?;
+        let problem: Problem = input.parse()?;
+        let answer = solve(&problem)?;
         assert_eq!(answer, 31);
         Ok(())
     }

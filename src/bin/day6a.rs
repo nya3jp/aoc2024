@@ -1,6 +1,6 @@
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, str::FromStr};
 
-use anyhow::{ensure, Context, Result};
+use anyhow::{ensure, Context, Error, Result};
 
 type Position = (isize, isize);
 
@@ -42,6 +42,7 @@ impl Direction {
     }
 }
 
+#[derive(Clone, Debug)]
 struct Problem {
     size: (isize, isize),
     blocks: BTreeSet<Position>,
@@ -49,40 +50,44 @@ struct Problem {
     guard_dir: Direction,
 }
 
-fn parse_input(input: &str) -> Result<Problem> {
-    let mut blocks: BTreeSet<Position> = BTreeSet::new();
-    let mut guard_pos: Option<Position> = None;
-    let mut guard_dir: Option<Direction> = None;
+impl FromStr for Problem {
+    type Err = Error;
 
-    let lines: Vec<&str> = input.trim().lines().collect();
-    let n = lines.len() as isize;
-    let m = lines[0].len() as isize;
+    fn from_str(input: &str) -> Result<Self> {
+        let mut blocks: BTreeSet<Position> = BTreeSet::new();
+        let mut guard_pos: Option<Position> = None;
+        let mut guard_dir: Option<Direction> = None;
 
-    for (i, line) in lines.iter().enumerate() {
-        let chars: Vec<char> = line.chars().collect();
-        ensure!(chars.len() == m as usize, "Invalid dimension");
-        for (j, c) in chars.into_iter().enumerate() {
-            if c == '#' {
-                blocks.insert((i as isize, j as isize));
-            }
-            if let Some(dir) = Direction::from_char(c) {
-                ensure!(guard_pos.is_none(), "Multiple guards");
-                ensure!(guard_dir.is_none(), "Multiple guards");
-                guard_pos = Some((i as isize, j as isize));
-                guard_dir = Some(dir);
+        let lines: Vec<&str> = input.trim().lines().collect();
+        let n = lines.len() as isize;
+        let m = lines[0].len() as isize;
+
+        for (i, line) in lines.iter().enumerate() {
+            let chars: Vec<char> = line.chars().collect();
+            ensure!(chars.len() == m as usize, "Invalid dimension");
+            for (j, c) in chars.into_iter().enumerate() {
+                if c == '#' {
+                    blocks.insert((i as isize, j as isize));
+                }
+                if let Some(dir) = Direction::from_char(c) {
+                    ensure!(guard_pos.is_none(), "Multiple guards");
+                    ensure!(guard_dir.is_none(), "Multiple guards");
+                    guard_pos = Some((i as isize, j as isize));
+                    guard_dir = Some(dir);
+                }
             }
         }
+
+        let guard_pos = guard_pos.context("No guard")?;
+        let guard_dir = guard_dir.context("No guard")?;
+
+        Ok(Problem {
+            size: (n, m),
+            blocks,
+            guard_pos,
+            guard_dir,
+        })
     }
-
-    let guard_pos = guard_pos.context("No guard")?;
-    let guard_dir = guard_dir.context("No guard")?;
-
-    Ok(Problem {
-        size: (n, m),
-        blocks,
-        guard_pos,
-        guard_dir,
-    })
 }
 
 fn solve(problem: &Problem) -> Result<usize> {
@@ -115,8 +120,8 @@ fn solve(problem: &Problem) -> Result<usize> {
 
 fn main() -> Result<()> {
     let input = std::io::read_to_string(std::io::stdin().lock())?;
-    let map = parse_input(input.trim())?;
-    let answer = solve(&map)?;
+    let problem: Problem = input.parse()?;
+    let answer = solve(&problem)?;
     println!("{}", answer);
     Ok(())
 }
@@ -138,7 +143,7 @@ mod tests {
 #.........
 ......#...
 "#;
-        let problem = parse_input(input)?;
+        let problem: Problem = input.parse()?;
         let answer = solve(&problem)?;
         assert_eq!(answer, 41);
         Ok(())

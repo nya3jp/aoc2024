@@ -1,24 +1,37 @@
-use anyhow::{ensure, Context, Result};
+use std::str::FromStr;
+
+use anyhow::{ensure, Context, Error, Result};
 use itertools::Itertools;
 
-fn parse_input(input: &str) -> Result<(Vec<isize>, Vec<isize>)> {
-    let both: Vec<(isize, isize)> = input
-        .lines()
-        .map(|line| -> Result<_> {
-            let mut parts = line.split_whitespace();
-            let left = parts.next().context("No left value")?;
-            let right = parts.next().context("No right value")?;
-            let left = left.parse::<isize>()?;
-            let right = right.parse::<isize>()?;
-            Ok((left, right))
-        })
-        .collect::<Result<_>>()?;
-    Ok(both.into_iter().unzip())
+#[derive(Clone, Debug)]
+struct Problem {
+    lefts: Vec<isize>,
+    rights: Vec<isize>,
 }
 
-fn solve(lefts: &[isize], rights: &[isize]) -> Result<isize> {
-    let lefts: Vec<isize> = lefts.iter().copied().sorted().collect();
-    let rights: Vec<isize> = rights.iter().copied().sorted().collect();
+impl FromStr for Problem {
+    type Err = Error;
+
+    fn from_str(input: &str) -> Result<Self> {
+        let both: Vec<(isize, isize)> = input
+            .lines()
+            .map(|line| -> Result<_> {
+                let mut parts = line.split_whitespace();
+                let left = parts.next().context("No left value")?;
+                let right = parts.next().context("No right value")?;
+                let left = left.parse::<isize>()?;
+                let right = right.parse::<isize>()?;
+                Ok((left, right))
+            })
+            .collect::<Result<_>>()?;
+        let (lefts, rights) = both.into_iter().unzip();
+        Ok(Problem { lefts, rights })
+    }
+}
+
+fn solve(problem: &Problem) -> Result<isize> {
+    let lefts: Vec<isize> = problem.lefts.iter().copied().sorted().collect();
+    let rights: Vec<isize> = problem.rights.iter().copied().sorted().collect();
     ensure!(lefts.len() == rights.len(), "Mismatched lengths");
     let answer = lefts
         .into_iter()
@@ -30,8 +43,8 @@ fn solve(lefts: &[isize], rights: &[isize]) -> Result<isize> {
 
 fn main() -> Result<()> {
     let input = std::io::read_to_string(std::io::stdin().lock())?;
-    let (lefts, rights) = parse_input(&input)?;
-    let answer = solve(&lefts, &rights)?;
+    let problem: Problem = input.parse()?;
+    let answer = solve(&problem)?;
     println!("{}", answer);
     Ok(())
 }
@@ -49,8 +62,8 @@ mod tests {
 3   9
 3   3
 "#;
-        let (lefts, rights) = parse_input(input)?;
-        let answer = solve(&lefts, &rights)?;
+        let problem: Problem = input.parse()?;
+        let answer = solve(&problem)?;
         assert_eq!(answer, 11);
         Ok(())
     }

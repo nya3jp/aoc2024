@@ -1,14 +1,26 @@
+use std::str::FromStr;
+
 use anyhow::{Error, Result};
 
-fn parse_input(input: &str) -> Result<Vec<Vec<i32>>> {
-    input
-        .lines()
-        .map(|line| -> Result<Vec<_>> {
-            line.split_whitespace()
-                .map(|x| x.parse::<i32>().map_err(Error::new))
-                .collect()
-        })
-        .collect::<Result<_>>()
+#[derive(Clone, Debug)]
+struct Problem {
+    reports: Vec<Vec<i32>>,
+}
+
+impl FromStr for Problem {
+    type Err = Error;
+
+    fn from_str(input: &str) -> Result<Self> {
+        let reports = input
+            .lines()
+            .map(|line| -> Result<Vec<_>> {
+                line.split_whitespace()
+                    .map(|x| x.parse::<i32>().map_err(Error::new))
+                    .collect()
+            })
+            .collect::<Result<_>>()?;
+        Ok(Problem { reports })
+    }
 }
 
 fn is_safe_forward(mut report: impl Iterator<Item = i32>) -> bool {
@@ -28,14 +40,18 @@ fn is_safe(report: &[i32]) -> bool {
     is_safe_forward(report.iter().copied()) || is_safe_forward(report.iter().copied().rev())
 }
 
-fn solve(reports: &[Vec<i32>]) -> Result<usize> {
-    Ok(reports.iter().filter(|report| is_safe(report)).count())
+fn solve(problem: &Problem) -> Result<usize> {
+    Ok(problem
+        .reports
+        .iter()
+        .filter(|report| is_safe(report))
+        .count())
 }
 
 fn main() -> Result<()> {
     let input = std::io::read_to_string(std::io::stdin().lock())?;
-    let reports = parse_input(&input)?;
-    let answer = solve(&reports)?;
+    let problem: Problem = input.parse()?;
+    let answer = solve(&problem)?;
     println!("{}", answer);
     Ok(())
 }
@@ -53,8 +69,8 @@ mod tests {
 8 6 4 4 1
 1 3 6 7 9
 "#;
-        let reports = parse_input(input)?;
-        let answer = solve(&reports)?;
+        let problem: Problem = input.parse()?;
+        let answer = solve(&problem)?;
         assert_eq!(answer, 2);
         Ok(())
     }

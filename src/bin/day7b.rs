@@ -1,4 +1,6 @@
-use anyhow::{Context, Result};
+use std::str::FromStr;
+
+use anyhow::{Context, Error, Result};
 
 #[derive(Clone, Debug)]
 struct Equation {
@@ -11,21 +13,25 @@ struct Problem {
     equations: Vec<Equation>,
 }
 
-fn parse_input(input: &str) -> Result<Problem> {
-    let equations = input
-        .trim()
-        .lines()
-        .map(|line| {
-            let (target_str, factors_str) = line.split_once(": ").context("Invalid input")?;
-            let target = target_str.parse()?;
-            let factors = factors_str
-                .split_ascii_whitespace()
-                .map(|x| x.parse::<u64>())
-                .collect::<Result<Vec<_>, _>>()?;
-            Ok(Equation { target, factors })
-        })
-        .collect::<Result<_>>()?;
-    Ok(Problem { equations })
+impl FromStr for Problem {
+    type Err = Error;
+
+    fn from_str(input: &str) -> Result<Self> {
+        let equations = input
+            .trim()
+            .lines()
+            .map(|line| {
+                let (target_str, factors_str) = line.split_once(": ").context("Invalid input")?;
+                let target = target_str.parse()?;
+                let factors = factors_str
+                    .split_ascii_whitespace()
+                    .map(|x| x.parse::<u64>())
+                    .collect::<Result<Vec<_>, _>>()?;
+                Ok(Equation { target, factors })
+            })
+            .collect::<Result<_>>()?;
+        Ok(Problem { equations })
+    }
 }
 
 fn concat_numbers(a: u64, b: u64) -> u64 {
@@ -52,19 +58,19 @@ fn can_produce(equation: &Equation) -> bool {
     search(equation.factors[0], equation.target, &equation.factors[1..])
 }
 
-fn solve(problem: &Problem) -> u64 {
-    problem
+fn solve(problem: &Problem) -> Result<u64> {
+    Ok(problem
         .equations
         .iter()
         .filter(|equation| can_produce(equation))
         .map(|equation| equation.target)
-        .sum()
+        .sum())
 }
 
 fn main() -> Result<()> {
     let input = std::io::read_to_string(std::io::stdin().lock())?;
-    let problem = parse_input(input.trim())?;
-    let answer = solve(&problem);
+    let problem: Problem = input.parse()?;
+    let answer = solve(&problem)?;
     println!("{}", answer);
     Ok(())
 }
@@ -85,8 +91,8 @@ mod tests {
 21037: 9 7 18 13
 292: 11 6 16 20
 "#;
-        let problem = parse_input(input)?;
-        let answer = solve(&problem);
+        let problem: Problem = input.parse()?;
+        let answer = solve(&problem)?;
         assert_eq!(answer, 11387);
         Ok(())
     }

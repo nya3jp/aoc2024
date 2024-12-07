@@ -1,31 +1,39 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    str::FromStr,
+};
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Error, Result};
 use itertools::Itertools;
 
+#[derive(Clone, Debug)]
 struct Problem {
     rules: Vec<(u32, u32)>,
     updates: Vec<Vec<u32>>,
 }
 
-fn parse_input(input: &str) -> Result<Problem> {
-    let (rules_str, updates_str) = input.split_once("\n\n").context("Parse error")?;
-    let rules = rules_str
-        .lines()
-        .map(|line| {
-            let (a, b) = line.split_once('|').context("Parse error")?;
-            Ok((a.parse()?, b.parse()?))
-        })
-        .collect::<Result<_>>()?;
-    let updates = updates_str
-        .lines()
-        .map(|line| {
-            line.split(',')
-                .map(|x| x.parse::<u32>())
-                .collect::<Result<Vec<_>, _>>()
-        })
-        .collect::<Result<_, _>>()?;
-    Ok(Problem { rules, updates })
+impl FromStr for Problem {
+    type Err = Error;
+
+    fn from_str(input: &str) -> Result<Self> {
+        let (rules_str, updates_str) = input.split_once("\n\n").context("Parse error")?;
+        let rules = rules_str
+            .lines()
+            .map(|line| {
+                let (a, b) = line.split_once('|').context("Parse error")?;
+                Ok((a.parse()?, b.parse()?))
+            })
+            .collect::<Result<_>>()?;
+        let updates = updates_str
+            .lines()
+            .map(|line| {
+                line.split(',')
+                    .map(|x| x.parse::<u32>())
+                    .collect::<Result<Vec<_>, _>>()
+            })
+            .collect::<Result<_, _>>()?;
+        Ok(Problem { rules, updates })
+    }
 }
 
 fn is_right_order(update: &[u32], rules_index: &BTreeMap<u32, Vec<u32>>) -> bool {
@@ -92,8 +100,8 @@ fn solve(problem: &Problem) -> Result<u32> {
 
 fn main() -> Result<()> {
     let input = std::io::read_to_string(std::io::stdin().lock())?;
-    let map = parse_input(input.trim())?;
-    let answer = solve(&map)?;
+    let problem: Problem = input.parse()?;
+    let answer = solve(&problem)?;
     println!("{}", answer);
     Ok(())
 }
@@ -133,7 +141,7 @@ mod tests {
 61,13,29
 97,13,75,29,47
 "#;
-        let problem = parse_input(input)?;
+        let problem: Problem = input.parse()?;
         let answer = solve(&problem)?;
         assert_eq!(answer, 123);
         Ok(())
