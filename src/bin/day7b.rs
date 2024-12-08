@@ -43,15 +43,15 @@ fn concat_numbers(a: u64, b: u64) -> u64 {
 }
 
 fn search(current: u64, target: u64, factors: &[u64]) -> bool {
-    if factors.is_empty() {
-        return current == target;
-    }
     if current > target {
         return false;
     }
-    search(current + factors[0], target, &factors[1..])
-        || search(current * factors[0], target, &factors[1..])
-        || search(concat_numbers(current, factors[0]), target, &factors[1..])
+    let Some((&first, new_factors)) = factors.split_first() else {
+        return current == target;
+    };
+    search(current + first, target, new_factors)
+        || search(current * first, target, new_factors)
+        || search(concat_numbers(current, first), target, new_factors)
 }
 
 fn can_produce(equation: &Equation) -> bool {
