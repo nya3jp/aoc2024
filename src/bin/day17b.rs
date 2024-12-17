@@ -86,6 +86,10 @@ fn search(bits: BitVec, offset: usize, goal: &[u8]) -> Option<u64> {
     let Some((&next, goal_rest)) = goal.split_first() else {
         return bits.finalize(offset);
     };
+    // while a > 0:
+    //   b = a % 8
+    //   out <- (b ^ (a >> (b ^ 4))) % 8
+    //   a /= 8
     for b in 0..8 {
         let mut new_bits = bits.clone();
         let shift = (b ^ 4) as usize;
