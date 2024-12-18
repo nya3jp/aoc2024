@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, HashSet, VecDeque},
+    collections::{HashMap, HashSet},
     hash::Hash,
     ops::Add,
     str::FromStr,
@@ -88,9 +88,7 @@ impl<T: Copy + Eq + PartialEq + Hash> UnionFind<T> {
             None => None,
         }
     }
-}
 
-impl<T: Copy + Eq + PartialEq + Hash> UnionFind<T> {
     pub fn merge(&mut self, a: T, b: T) -> Option<(T, usize)> {
         let (a_root, a_size) = self.find(a)?;
         let (b_root, b_size) = self.find(b)?;
@@ -119,9 +117,7 @@ impl<T: Copy + Eq + PartialEq + Hash> UnionFind<T> {
             Some((a_root, a_size + b_size))
         }
     }
-}
 
-impl<T: Copy + Eq + PartialEq + Hash> UnionFind<T> {
     pub fn same(&mut self, a: T, b: T) -> Option<bool> {
         let (a_root, _) = self.find(a)?;
         let (b_root, _) = self.find(b)?;
